@@ -1,0 +1,2210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1a1a2e">
+  <title>TimeManager</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <style>
+    :root {
+      --bg: #0d1021;
+      --bg-soft: #13182d;
+      --panel: rgba(26, 26, 46, 0.88);
+      --panel-strong: #161b32;
+      --panel-muted: #20274a;
+      --line: rgba(255, 255, 255, 0.08);
+      --line-strong: rgba(255, 255, 255, 0.14);
+      --text: #f5f7ff;
+      --text-muted: #9ca6c9;
+      --text-soft: #7f88ac;
+      --primary: #4f6ef7;
+      --primary-soft: rgba(79, 110, 247, 0.16);
+      --success: #35c98f;
+      --danger: #ff647c;
+      --warning: #ffb347;
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+      --nav-height: 78px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --priority-5: #ff647c;
+      --priority-4: #ff9d57;
+      --priority-3: #ffd166;
+      --priority-2: #4f6ef7;
+      --priority-1: #6e768f;
+      --font: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top right, rgba(79, 110, 247, 0.18), transparent 28%),
+        radial-gradient(circle at bottom left, rgba(53, 201, 143, 0.08), transparent 24%),
+        var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+    }
+
+    body {
+      overflow-x: hidden;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 13px 14px;
+      outline: none;
+      transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: rgba(79, 110, 247, 0.72);
+      background: rgba(79, 110, 247, 0.08);
+    }
+
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+    }
+
+    .app-shell {
+      max-width: 860px;
+      margin: 0 auto;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    .app-main {
+      padding: 18px 16px calc(var(--nav-height) + 34px + var(--safe-bottom));
+    }
+
+    .tab-panel {
+      display: none;
+      animation: panel-in 0.28s ease;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    @keyframes panel-in {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero-card,
+    .surface-card,
+    .ai-card,
+    .task-card,
+    .timeline-card,
+    .empty-card {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .hero-card {
+      border-radius: var(--radius-xl);
+      padding: 22px 20px;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -34px -60px auto;
+      width: 160px;
+      height: 160px;
+      background: radial-gradient(circle, rgba(79, 110, 247, 0.25), transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .hero-label {
+      font-size: 13px;
+      color: var(--text-soft);
+      margin-bottom: 8px;
+    }
+
+    .hero-title {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.18;
+    }
+
+    .hero-subtitle {
+      margin-top: 10px;
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .stat-pill {
+      min-width: 112px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(79, 110, 247, 0.12);
+      border: 1px solid rgba(79, 110, 247, 0.24);
+      text-align: left;
+    }
+
+    .stat-value {
+      display: block;
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .stat-label {
+      display: block;
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 10px 0 12px;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .section-note {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .chip-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--line);
+      color: var(--text-muted);
+      transition: all 0.22s ease;
+    }
+
+    .chip.active {
+      color: var(--text);
+      background: var(--primary-soft);
+      border-color: rgba(79, 110, 247, 0.48);
+      box-shadow: inset 0 0 0 1px rgba(79, 110, 247, 0.2);
+    }
+
+    .task-list,
+    .timeline-list,
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .task-children {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+      padding-left: 14px;
+      border-left: 1px dashed rgba(255, 255, 255, 0.08);
+    }
+
+    .task-card {
+      position: relative;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: transform 0.22s ease, border-color 0.22s ease, background 0.22s ease;
+    }
+
+    .task-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--line-strong);
+    }
+
+    .task-card.done {
+      opacity: 0.62;
+      filter: saturate(0.75);
+    }
+
+    .task-card.done .task-title {
+      text-decoration: line-through;
+    }
+
+    .task-card.overdue {
+      border-color: rgba(255, 100, 124, 0.44);
+      background: linear-gradient(180deg, rgba(255, 100, 124, 0.08), rgba(255, 255, 255, 0.015));
+    }
+
+    .task-card.due-today {
+      border-color: rgba(79, 110, 247, 0.42);
+      background: linear-gradient(180deg, rgba(79, 110, 247, 0.08), rgba(255, 255, 255, 0.015));
+    }
+
+    .task-card.context-parent {
+      opacity: 0.92;
+    }
+
+    .task-inner {
+      display: flex;
+      gap: 14px;
+      padding: 16px;
+      align-items: stretch;
+    }
+
+    .priority-strip {
+      width: 6px;
+      border-radius: 999px;
+      background: var(--priority-3);
+      flex-shrink: 0;
+    }
+
+    .task-content {
+      flex: 1;
+      min-width: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .task-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .task-title-wrap {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .task-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .task-description {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.55;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
+    }
+
+    .task-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .meta-pill,
+    .status-badge,
+    .mini-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 28px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      font-size: 12px;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .meta-pill strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .status-badge.todo {
+      color: #dbe2ff;
+    }
+
+    .status-badge.doing {
+      color: #9dd4ff;
+    }
+
+    .status-badge.done {
+      color: #86d8b3;
+    }
+
+    .due-text {
+      font-size: 12px;
+      color: var(--text-soft);
+    }
+
+    .due-text.overdue {
+      color: var(--danger);
+    }
+
+    .due-text.today {
+      color: #8eb5ff;
+    }
+
+    .task-actions {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .icon-button {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      transition: all 0.22s ease;
+    }
+
+    .icon-button:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--line);
+    }
+
+    .expand-icon {
+      transition: transform 0.2s ease;
+    }
+
+    .expand-icon.is-open {
+      transform: rotate(90deg);
+    }
+
+    .empty-card {
+      border-radius: 20px;
+      padding: 22px 18px;
+      text-align: center;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .timeline-period {
+      margin-bottom: 18px;
+    }
+
+    .timeline-period-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 12px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .timeline-period-title::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: currentColor;
+      box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.03);
+    }
+
+    .timeline-period.overdue .timeline-period-title {
+      color: var(--danger);
+    }
+
+    .timeline-period.today .timeline-period-title {
+      color: var(--primary);
+    }
+
+    .timeline-period.future .timeline-period-title {
+      color: #aab3d6;
+    }
+
+    .timeline-group {
+      position: relative;
+      padding-left: 20px;
+      margin-bottom: 14px;
+    }
+
+    .timeline-group::before {
+      content: "";
+      position: absolute;
+      left: 5px;
+      top: 8px;
+      bottom: -14px;
+      width: 2px;
+      background: linear-gradient(180deg, rgba(79, 110, 247, 0.42), rgba(255, 255, 255, 0.06));
+    }
+
+    .timeline-date {
+      margin: 0 0 10px;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .timeline-card {
+      border-radius: 18px;
+      padding: 14px;
+      margin-bottom: 10px;
+      position: relative;
+    }
+
+    .timeline-top {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .priority-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      flex-shrink: 0;
+      margin-top: 5px;
+      background: var(--priority-3);
+    }
+
+    .timeline-main {
+      min-width: 0;
+      flex: 1;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .timeline-title {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.4;
+    }
+
+    .timeline-note {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .ai-card {
+      border-radius: var(--radius-xl);
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    .ai-head {
+      margin-bottom: 14px;
+    }
+
+    .ai-title {
+      margin: 0 0 6px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .ai-desc {
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .field-grid {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .field-label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .field-help {
+      margin-top: 6px;
+      color: var(--text-soft);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .btn {
+      min-height: 46px;
+      padding: 0 18px;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-weight: 700;
+      transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      color: white;
+      background: linear-gradient(135deg, #4f6ef7, #6c80ff);
+      box-shadow: 0 12px 28px rgba(79, 110, 247, 0.28);
+    }
+
+    .btn-secondary {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--line);
+    }
+
+    .btn-danger {
+      color: white;
+      background: linear-gradient(135deg, #ff647c, #ff7e7e);
+    }
+
+    .btn[disabled] {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .slot-list,
+    .schedule-task-list,
+    .result-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .slot-row {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 16px;
+      border: 1px solid var(--line);
+    }
+
+    .slot-row-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .check-item input {
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      margin: 0;
+      accent-color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .check-meta {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .check-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .check-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .result-box {
+      margin-top: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(8, 11, 26, 0.46);
+      padding: 14px;
+      display: none;
+    }
+
+    .result-box.visible {
+      display: block;
+      animation: panel-in 0.24s ease;
+    }
+
+    .result-item {
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .result-item:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .result-item:first-child {
+      padding-top: 0;
+    }
+
+    .result-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .result-text {
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .floating-button {
+      position: fixed;
+      right: 18px;
+      bottom: calc(var(--nav-height) + 18px + var(--safe-bottom));
+      width: 60px;
+      height: 60px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #4f6ef7, #6b8eff);
+      color: white;
+      font-size: 32px;
+      line-height: 1;
+      box-shadow: 0 18px 36px rgba(79, 110, 247, 0.35);
+      z-index: 20;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      width: min(100%, 860px);
+      padding: 10px 12px calc(10px + var(--safe-bottom));
+      background: rgba(10, 13, 28, 0.92);
+      backdrop-filter: blur(18px);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      z-index: 18;
+    }
+
+    .nav-item {
+      min-height: 58px;
+      background: transparent;
+      color: var(--text-soft);
+      border-radius: 16px;
+      display: grid;
+      gap: 4px;
+      align-content: center;
+      justify-items: center;
+      transition: color 0.2s ease, background 0.2s ease;
+    }
+
+    .nav-item.active {
+      color: var(--text);
+      background: rgba(79, 110, 247, 0.12);
+    }
+
+    .nav-icon {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .nav-label {
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .sheet-backdrop,
+    .toast-wrap,
+    .loading-wrap {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      pointer-events: none;
+    }
+
+    .sheet-backdrop {
+      background: rgba(3, 5, 14, 0.18);
+      opacity: 0;
+      transition: opacity 0.22s ease;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .sheet-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+      background: rgba(3, 5, 14, 0.62);
+    }
+
+    .sheet {
+      width: min(100%, 860px);
+      background: linear-gradient(180deg, rgba(24, 28, 50, 0.98), rgba(18, 22, 40, 0.98));
+      border-radius: 28px 28px 0 0;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 0;
+      padding: 18px 18px calc(18px + var(--safe-bottom));
+      transform: translateY(100%);
+      transition: transform 0.26s ease;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .sheet-backdrop.open .sheet {
+      transform: translateY(0);
+    }
+
+    .sheet-handle {
+      width: 52px;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.14);
+      margin: 0 auto 16px;
+    }
+
+    .sheet-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .sheet-title {
+      margin: 0;
+      font-size: 19px;
+      font-weight: 700;
+    }
+
+    .sheet-subtitle {
+      margin-top: 6px;
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .priority-picker {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .priority-pill {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      color: white;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.08);
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+
+    .priority-pill.active {
+      transform: translateY(-1px) scale(1.03);
+      box-shadow: 0 12px 20px rgba(0, 0, 0, 0.18);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .toast-wrap {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0 14px calc(var(--nav-height) + 26px + var(--safe-bottom));
+      z-index: 60;
+    }
+
+    .toast {
+      background: rgba(13, 16, 33, 0.96);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 16px;
+      padding: 13px 16px;
+      box-shadow: var(--shadow);
+      min-width: min(92vw, 360px);
+      max-width: 420px;
+      transform: translateY(18px);
+      opacity: 0;
+      transition: transform 0.22s ease, opacity 0.22s ease;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.error {
+      border-color: rgba(255, 100, 124, 0.36);
+    }
+
+    .loading-wrap {
+      display: none;
+      place-items: center;
+      background: rgba(3, 5, 14, 0.54);
+      z-index: 70;
+    }
+
+    .loading-wrap.show {
+      display: grid;
+    }
+
+    .loading-card {
+      background: rgba(15, 19, 36, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 22px;
+      padding: 22px 24px;
+      min-width: 220px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      margin: 0 auto 14px;
+      border-radius: 999px;
+      border: 3px solid rgba(255, 255, 255, 0.08);
+      border-top-color: var(--primary);
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (min-width: 720px) {
+      .app-main {
+        padding: 26px 22px calc(var(--nav-height) + 44px + var(--safe-bottom));
+      }
+
+      .hero-card {
+        padding: 28px 26px;
+      }
+
+      .slot-row-grid {
+        grid-template-columns: 1fr 1fr auto;
+      }
+
+      .field-grid.two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <main class="app-main">
+      <section class="tab-panel active" data-tab-panel="today">
+        <div class="hero-card">
+          <div class="hero-top">
+            <div>
+              <div class="hero-label">今日概览</div>
+              <h1 class="hero-title" id="todayDateLabel">今天</h1>
+              <div class="hero-subtitle">把最重要的事情先完成，今天的任务会按优先级自动排序。</div>
+            </div>
+            <div class="stat-pill">
+              <span class="stat-value" id="todayPendingCount">0</span>
+              <span class="stat-label">未完成任务</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-head">
+          <h2 class="section-title">优先任务</h2>
+          <div class="section-note" id="todaySummaryText">正在加载...</div>
+        </div>
+
+        <div class="task-list" id="todayTaskList"></div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="all">
+        <div class="section-head">
+          <h2 class="section-title">全部任务</h2>
+          <div class="section-note">母子任务结构清晰展示</div>
+        </div>
+
+        <div class="chip-row" id="allFilterRow">
+          <button class="chip active" data-filter="all">全部</button>
+          <button class="chip" data-filter="doing">进行中</button>
+          <button class="chip" data-filter="done">已完成</button>
+        </div>
+
+        <div class="task-list" id="allTaskList"></div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="timeline">
+        <div class="section-head">
+          <h2 class="section-title">时间轴</h2>
+          <div class="section-note">按时间顺序查看截止日期和 AI 规划结果</div>
+        </div>
+
+        <div id="timelineContainer"></div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="ai">
+        <div class="ai-card">
+          <div class="ai-head">
+            <h2 class="ai-title">任务拆解</h2>
+            <p class="ai-desc">把一个大目标拆成可执行的子任务。当前版本后端会在生成后直接写入数据库，结果区用于查看与确认。</p>
+          </div>
+
+          <div class="field-grid">
+            <div>
+              <label class="field-label" for="decomposeTitle">任务标题</label>
+              <input id="decomposeTitle" type="text" placeholder="例如：准备下周产品汇报">
+            </div>
+            <div>
+              <label class="field-label" for="decomposeDescription">任务描述</label>
+              <textarea id="decomposeDescription" placeholder="补充背景、目标、限制条件等（可选）"></textarea>
+            </div>
+            <div>
+              <label class="field-label" for="decomposeParent">关联到哪个母任务</label>
+              <select id="decomposeParent"></select>
+              <div class="field-help" id="decomposeParentHint">选择现有母任务时，会以该任务作为拆解目标。</div>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button class="btn btn-primary" id="decomposeButton">AI 拆解</button>
+          </div>
+
+          <div class="result-box" id="decomposeResultBox">
+            <div class="section-head" style="margin-top:0;">
+              <h3 class="section-title" style="font-size:16px;">拆解结果</h3>
+              <div class="section-note">子任务将逐条显示</div>
+            </div>
+            <div class="result-list" id="decomposeResultList"></div>
+            <div class="action-row">
+              <button class="btn btn-secondary" id="decomposeConfirmButton">确认并刷新列表</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-card">
+          <div class="ai-head">
+            <h2 class="ai-title">优先级分析</h2>
+            <p class="ai-desc">AI 将分析所有未完成任务的优先级，结合截止日期、任务关键词与预计耗时给出建议。</p>
+          </div>
+
+          <div class="action-row">
+            <button class="btn btn-primary" id="prioritizeButton">开始分析</button>
+            <button class="btn btn-secondary" id="prioritizeApplyButton" disabled>一键应用（已同步）</button>
+          </div>
+
+          <div class="result-box" id="prioritizeResultBox">
+            <div class="section-head" style="margin-top:0;">
+              <h3 class="section-title" style="font-size:16px;">分析结果</h3>
+              <div class="section-note">当前值与建议值对比</div>
+            </div>
+            <div class="result-list" id="prioritizeResultList"></div>
+          </div>
+        </div>
+
+        <div class="ai-card">
+          <div class="ai-head">
+            <h2 class="ai-title">日程规划</h2>
+            <p class="ai-desc">输入今天或本周的空闲时间段，AI 会根据任务优先级与截止日期安排任务，结果会写入数据库。</p>
+          </div>
+
+          <div class="section-head">
+            <h3 class="section-title" style="font-size:16px;">空闲时间段</h3>
+            <button class="btn btn-secondary" id="addSlotButton" style="min-height:40px;">添加时间段</button>
+          </div>
+          <div class="slot-list" id="slotList"></div>
+
+          <div class="section-head" style="margin-top:18px;">
+            <h3 class="section-title" style="font-size:16px;">选择要规划的任务</h3>
+            <button class="btn btn-secondary" id="toggleSelectAllTasks" style="min-height:40px;">全选 / 全不选</button>
+          </div>
+          <div class="schedule-task-list" id="scheduleTaskList"></div>
+
+          <div class="action-row">
+            <button class="btn btn-primary" id="scheduleButton">AI 规划</button>
+            <button class="btn btn-secondary" id="scheduleSaveButton" disabled>确认保存（已同步）</button>
+          </div>
+
+          <div class="result-box" id="scheduleResultBox">
+            <div class="section-head" style="margin-top:0;">
+              <h3 class="section-title" style="font-size:16px;">规划结果</h3>
+              <div class="section-note">具体开始与结束时间</div>
+            </div>
+            <div class="result-list" id="scheduleResultList"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <button class="floating-button" id="createTaskButton" aria-label="新建任务">+</button>
+
+    <nav class="bottom-nav" aria-label="底部导航">
+      <button class="nav-item active" data-tab="today">
+        <span class="nav-icon">◐</span>
+        <span class="nav-label">今日</span>
+      </button>
+      <button class="nav-item" data-tab="all">
+        <span class="nav-icon">☰</span>
+        <span class="nav-label">全部</span>
+      </button>
+      <button class="nav-item" data-tab="timeline">
+        <span class="nav-icon">⎯</span>
+        <span class="nav-label">时间轴</span>
+      </button>
+      <button class="nav-item" data-tab="ai">
+        <span class="nav-icon">✦</span>
+        <span class="nav-label">AI 助手</span>
+      </button>
+    </nav>
+  </div>
+
+  <div class="sheet-backdrop" id="taskSheetBackdrop">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div>
+          <h2 class="sheet-title" id="taskSheetTitle">新建任务</h2>
+          <div class="sheet-subtitle" id="taskSheetSubtitle">填写任务信息后保存</div>
+        </div>
+        <button class="icon-button" id="taskSheetCloseButton" aria-label="关闭">✕</button>
+      </div>
+
+      <form id="taskForm" class="field-grid">
+        <input type="hidden" id="taskId">
+        <input type="hidden" id="taskPriorityValue" value="3">
+
+        <div>
+          <label class="field-label" for="taskTitle">标题</label>
+          <input id="taskTitle" type="text" required placeholder="例如：整理本周会议纪要">
+        </div>
+
+        <div>
+          <label class="field-label" for="taskDescription">描述</label>
+          <textarea id="taskDescription" placeholder="补充更多上下文"></textarea>
+        </div>
+
+        <div>
+          <span class="field-label">优先级</span>
+          <div class="priority-picker" id="priorityPicker"></div>
+        </div>
+
+        <div class="field-grid two">
+          <div>
+            <label class="field-label" for="taskDueDate">截止日期</label>
+            <input id="taskDueDate" type="datetime-local">
+          </div>
+          <div>
+            <label class="field-label" for="taskEstimatedMinutes">预计耗时（分钟）</label>
+            <input id="taskEstimatedMinutes" type="number" min="1" step="1" placeholder="例如：60">
+          </div>
+        </div>
+
+        <div>
+          <label class="field-label" for="taskParentId">母任务</label>
+          <select id="taskParentId"></select>
+        </div>
+
+        <div class="action-row">
+          <button type="submit" class="btn btn-primary" id="taskSaveButton">保存</button>
+          <button type="button" class="btn btn-secondary" id="taskCancelButton">取消</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="sheet-backdrop" id="actionSheetBackdrop">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div>
+          <h2 class="sheet-title" id="actionSheetTitle">任务操作</h2>
+          <div class="sheet-subtitle" id="actionSheetSubtitle">选择下一步操作</div>
+        </div>
+        <button class="icon-button" id="actionSheetCloseButton" aria-label="关闭">✕</button>
+      </div>
+
+      <div class="stack">
+        <button class="btn btn-secondary" id="actionEditButton">编辑任务</button>
+        <button class="btn btn-secondary" id="actionToggleDoneButton">标记完成</button>
+        <button class="btn btn-danger" id="actionDeleteButton">删除任务</button>
+        <button class="btn btn-secondary" id="actionCancelButton">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-wrap">
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <div class="loading-wrap" id="loadingWrap">
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <div id="loadingText">处理中...</div>
+    </div>
+  </div>
+  <script>
+    const state = {
+      activeTab: "today",
+      allFilter: "all",
+      tasks: [],
+      timeline: [],
+      expandedParents: new Set(),
+      loadingCount: 0,
+      currentActionTaskId: null,
+      ai: {
+        decompose: { items: [] },
+        prioritize: { items: [] },
+        schedule: {
+          items: [],
+          slots: [{ start: "", end: "" }],
+          selectedTaskIds: new Set(),
+          initialized: false
+        }
+      }
+    };
+
+    const priorityMeta = {
+      5: { color: "var(--priority-5)", label: "P5" },
+      4: { color: "var(--priority-4)", label: "P4" },
+      3: { color: "var(--priority-3)", label: "P3" },
+      2: { color: "var(--priority-2)", label: "P2" },
+      1: { color: "var(--priority-1)", label: "P1" }
+    };
+
+    const statusLabels = {
+      todo: "待办",
+      doing: "进行中",
+      done: "已完成"
+    };
+
+    const els = {};
+
+    document.addEventListener("DOMContentLoaded", init);
+
+    async function init() {
+      cacheElements();
+      bindEvents();
+      renderPriorityPicker(3);
+      renderSlotInputs();
+      setTodayHeader();
+      setupPWA();
+      await refreshAll();
+    }
+
+    function cacheElements() {
+      const ids = [
+        "todayDateLabel", "todayPendingCount", "todaySummaryText", "todayTaskList",
+        "allTaskList", "timelineContainer", "decomposeParent", "decomposeParentHint",
+        "decomposeTitle", "decomposeDescription", "decomposeButton",
+        "decomposeResultBox", "decomposeResultList", "decomposeConfirmButton",
+        "prioritizeButton", "prioritizeApplyButton", "prioritizeResultBox", "prioritizeResultList",
+        "slotList", "scheduleTaskList", "scheduleButton", "scheduleSaveButton", "scheduleResultBox",
+        "scheduleResultList", "addSlotButton", "toggleSelectAllTasks", "createTaskButton",
+        "taskSheetBackdrop", "taskSheetTitle", "taskSheetSubtitle", "taskSheetCloseButton",
+        "taskForm", "taskId", "taskTitle", "taskDescription", "taskPriorityValue",
+        "taskDueDate", "taskEstimatedMinutes", "taskParentId", "taskSaveButton",
+        "taskCancelButton", "priorityPicker", "actionSheetBackdrop", "actionSheetTitle",
+        "actionSheetSubtitle", "actionSheetCloseButton", "actionEditButton", "actionToggleDoneButton",
+        "actionDeleteButton", "actionCancelButton", "toast", "loadingWrap", "loadingText"
+      ];
+
+      ids.forEach((id) => {
+        els[id] = document.getElementById(id);
+      });
+
+      els.tabPanels = Array.from(document.querySelectorAll("[data-tab-panel]"));
+      els.tabButtons = Array.from(document.querySelectorAll("[data-tab]"));
+      els.filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
+    }
+
+    function bindEvents() {
+      els.tabButtons.forEach((button) => {
+        button.addEventListener("click", () => setActiveTab(button.dataset.tab));
+      });
+
+      els.filterButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          state.allFilter = button.dataset.filter;
+          renderAllTab();
+        });
+      });
+
+      els.createTaskButton.addEventListener("click", () => openTaskSheet());
+      els.taskSheetCloseButton.addEventListener("click", closeTaskSheet);
+      els.taskCancelButton.addEventListener("click", closeTaskSheet);
+      els.taskSheetBackdrop.addEventListener("click", (event) => {
+        if (event.target === els.taskSheetBackdrop) closeTaskSheet();
+      });
+
+      els.actionSheetCloseButton.addEventListener("click", closeActionSheet);
+      els.actionCancelButton.addEventListener("click", closeActionSheet);
+      els.actionSheetBackdrop.addEventListener("click", (event) => {
+        if (event.target === els.actionSheetBackdrop) closeActionSheet();
+      });
+
+      els.taskForm.addEventListener("submit", handleTaskSubmit);
+      els.priorityPicker.addEventListener("click", handlePriorityPickerClick);
+
+      els.decomposeParent.addEventListener("change", updateDecomposeHint);
+      els.decomposeButton.addEventListener("click", handleDecompose);
+      els.decomposeConfirmButton.addEventListener("click", async () => {
+        await refreshAll();
+        showToast("子任务已同步到任务列表");
+      });
+
+      els.prioritizeButton.addEventListener("click", handlePrioritize);
+      els.prioritizeApplyButton.addEventListener("click", async () => {
+        await refreshAll();
+        showToast("优先级结果已同步");
+      });
+
+      els.addSlotButton.addEventListener("click", () => {
+        state.ai.schedule.slots.push({ start: "", end: "" });
+        renderSlotInputs();
+      });
+      els.toggleSelectAllTasks.addEventListener("click", toggleSelectAllTasks);
+      els.scheduleButton.addEventListener("click", handleSchedule);
+      els.scheduleSaveButton.addEventListener("click", async () => {
+        await refreshAll();
+        showToast("日程结果已同步");
+      });
+
+      els.slotList.addEventListener("input", handleSlotInput);
+      els.slotList.addEventListener("click", handleSlotRemove);
+      els.scheduleTaskList.addEventListener("change", handleScheduleTaskSelection);
+
+      els.todayTaskList.addEventListener("click", handleTaskListClick);
+      els.allTaskList.addEventListener("click", handleTaskListClick);
+      els.timelineContainer.addEventListener("click", handleTaskListClick);
+
+      els.actionEditButton.addEventListener("click", handleEditFromActionSheet);
+      els.actionToggleDoneButton.addEventListener("click", handleToggleDoneFromActionSheet);
+      els.actionDeleteButton.addEventListener("click", handleDeleteFromActionSheet);
+    }
+
+    function setupPWA() {
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/static/sw.js").catch(() => {
+            // 本步骤只接入注册逻辑，sw.js 由后续步骤补齐。
+          });
+        });
+      }
+    }
+
+    async function refreshAll() {
+      const previousSelection = new Set(state.ai.schedule.selectedTaskIds);
+      await Promise.all([loadTasks(), loadTimeline()]);
+      syncScheduleSelection(previousSelection);
+      renderAllViews();
+    }
+
+    async function loadTasks() {
+      const data = await apiFetch("/api/tasks?sort=created_at", {}, "加载任务中...");
+      state.tasks = Array.isArray(data.tasks) ? data.tasks : [];
+    }
+
+    async function loadTimeline() {
+      const data = await apiFetch("/api/timeline", {}, "加载时间轴中...");
+      state.timeline = Array.isArray(data.timeline) ? data.timeline : [];
+    }
+
+    function renderAllViews() {
+      setTodayHeader();
+      renderTodayTab();
+      renderAllTab();
+      renderTimelineTab();
+      renderParentOptions();
+      renderScheduleTaskOptions();
+      renderDecomposeResult();
+      renderPrioritizeResult();
+      renderScheduleResult();
+      updateNav();
+      updateDecomposeHint();
+    }
+
+    function setActiveTab(tab) {
+      state.activeTab = tab;
+      updateNav();
+    }
+
+    function updateNav() {
+      els.tabButtons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.tab === state.activeTab);
+      });
+      els.tabPanels.forEach((panel) => {
+        panel.classList.toggle("active", panel.dataset.tabPanel === state.activeTab);
+      });
+    }
+
+    function setTodayHeader() {
+      const now = new Date();
+      const pendingCount = state.tasks.filter((task) => task.status !== "done").length;
+      const formatter = new Intl.DateTimeFormat("zh-CN", {
+        month: "long",
+        day: "numeric",
+        weekday: "long"
+      });
+
+      els.todayDateLabel.textContent = formatter.format(now);
+      els.todayPendingCount.textContent = String(pendingCount);
+      els.todaySummaryText.textContent = pendingCount
+        ? `还有 ${pendingCount} 个任务待完成`
+        : "今天的任务已经清空";
+    }
+
+    function getChildrenMap() {
+      const map = new Map();
+      state.tasks.forEach((task) => {
+        if (task.parent_id == null) return;
+        if (!map.has(task.parent_id)) map.set(task.parent_id, []);
+        map.get(task.parent_id).push(task);
+      });
+      for (const [, children] of map.entries()) {
+        children.sort(compareTasks);
+      }
+      return map;
+    }
+
+    function getTopLevelTasks() {
+      return state.tasks.filter((task) => task.parent_id == null).slice().sort(compareTasks);
+    }
+
+    function compareTasks(a, b) {
+      const priorityDiff = Number(b.priority || 0) - Number(a.priority || 0);
+      if (priorityDiff !== 0) return priorityDiff;
+
+      const aDue = getSortTime(a.due_date);
+      const bDue = getSortTime(b.due_date);
+      if (aDue !== bDue) return aDue - bDue;
+
+      return getSortTime(b.created_at) - getSortTime(a.created_at);
+    }
+
+    function getSortTime(value) {
+      if (!value) return Number.MAX_SAFE_INTEGER;
+      const time = new Date(value).getTime();
+      return Number.isNaN(time) ? Number.MAX_SAFE_INTEGER : time;
+    }
+
+    function renderTodayTab() {
+      const tasks = getTopLevelTasks().filter((task) => task.status !== "done");
+      els.todayTaskList.innerHTML = tasks.length
+        ? tasks.map((task) => renderTaskCard(task, { context: "today" })).join("")
+        : renderEmpty("今天没有待完成任务，点击右下角按钮创建一个吧。");
+    }
+
+    function renderAllTab() {
+      els.filterButtons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.filter === state.allFilter);
+      });
+
+      const childrenMap = getChildrenMap();
+      const topLevelTasks = getTopLevelTasks();
+      const html = topLevelTasks
+        .map((task) => renderTaskBranch(task, childrenMap, 0, state.allFilter))
+        .filter(Boolean)
+        .join("");
+
+      els.allTaskList.innerHTML = html || renderEmpty("当前筛选条件下没有任务。");
+    }
+
+    function renderTaskBranch(task, childrenMap, depth, filter) {
+      const children = childrenMap.get(task.id) || [];
+      const visibleChildren = children
+        .map((child) => renderTaskBranch(child, childrenMap, depth + 1, filter))
+        .filter(Boolean);
+      const matchesSelf = filter === "all" || task.status === filter;
+      if (!matchesSelf && !visibleChildren.length) return "";
+
+      const expanded = state.expandedParents.has(task.id);
+      const childSection = children.length
+        ? `
+            <div class="task-children" style="${expanded ? "" : "display:none;"}">
+              ${visibleChildren.join("") || renderEmpty("暂无可显示的子任务。")}
+            </div>
+          `
+        : "";
+
+      return `
+        <div>
+          ${renderTaskCard(task, {
+            context: "all",
+            depth,
+            childCount: children.length,
+            expanded,
+            contextParent: !matchesSelf && visibleChildren.length > 0
+          })}
+          ${childSection}
+        </div>
+      `;
+    }
+
+    function renderTimelineTab() {
+      const items = Array.isArray(state.timeline) ? state.timeline.slice() : [];
+      if (!items.length) {
+        els.timelineContainer.innerHTML = renderEmpty("暂无截止日期或 AI 规划时间，时间轴会在你设置后自动出现。");
+        return;
+      }
+
+      const groups = { overdue: {}, today: {}, future: {} };
+      items.forEach((task) => {
+        const effectiveDate = new Date(task.scheduled_start || task.due_date);
+        if (Number.isNaN(effectiveDate.getTime())) return;
+        const period = getTimelinePeriod(effectiveDate);
+        const key = effectiveDate.toISOString().slice(0, 10);
+        if (!groups[period][key]) groups[period][key] = [];
+        groups[period][key].push(task);
+      });
+
+      const html = [
+        renderTimelinePeriod("overdue", "已过期", groups.overdue),
+        renderTimelinePeriod("today", "今天", groups.today),
+        renderTimelinePeriod("future", "未来", groups.future)
+      ].filter(Boolean).join("");
+
+      els.timelineContainer.innerHTML = html || renderEmpty("暂无可展示的时间轴数据。");
+    }
+
+    function renderTimelinePeriod(periodKey, label, groupMap) {
+      const dateKeys = Object.keys(groupMap).sort();
+      if (!dateKeys.length) return "";
+
+      const groupsHtml = dateKeys.map((dateKey) => {
+        const cards = groupMap[dateKey]
+          .slice()
+          .sort((a, b) => getSortTime(a.scheduled_start || a.due_date) - getSortTime(b.scheduled_start || b.due_date))
+          .map((task) => renderTimelineCard(task))
+          .join("");
+
+        return `
+          <div class="timeline-group">
+            <p class="timeline-date">${formatDateLabel(dateKey)}</p>
+            ${cards}
+          </div>
+        `;
+      }).join("");
+
+      return `
+        <section class="timeline-period ${periodKey}">
+          <h3 class="timeline-period-title">${label}</h3>
+          ${groupsHtml}
+        </section>
+      `;
+    }
+
+    function renderTimelineCard(task) {
+      const priority = clampPriority(task.priority);
+      const effective = task.scheduled_start || task.due_date;
+      const relative = getRelativeDayText(effective);
+      const timeRange = task.scheduled_start
+        ? `AI 规划：${formatTime(task.scheduled_start)} - ${formatTime(task.scheduled_end || task.scheduled_start)}`
+        : "未设置 AI 时间段";
+      const duration = task.estimated_minutes ? `预计 ${task.estimated_minutes} 分钟` : "未填写耗时";
+
+      return `
+        <article class="timeline-card" data-task-id="${task.id}">
+          <div class="timeline-top">
+            <div class="timeline-main">
+              <span class="priority-dot" style="background:${priorityMeta[priority].color};"></span>
+              <div>
+                <h4 class="timeline-title">${escapeHtml(task.title || "未命名任务")}</h4>
+                <div class="timeline-note">
+                  <span>${priorityMeta[priority].label}</span>
+                  <span>${escapeHtml(relative)}</span>
+                  <span>${escapeHtml(duration)}</span>
+                </div>
+                <div class="timeline-note">
+                  <span>${escapeHtml(timeRange)}</span>
+                </div>
+              </div>
+            </div>
+            <button class="icon-button" data-open-menu="${task.id}" aria-label="任务操作">⋯</button>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderTaskCard(task, options = {}) {
+      const childrenCount = Number(options.childCount || task.subtask_count || 0);
+      const expanded = Boolean(options.expanded);
+      const priority = clampPriority(task.priority);
+      const dueClass = getDueClass(task);
+      const statusClass = task.status || "todo";
+      const dueText = formatDueText(task);
+      const minutesText = task.estimated_minutes ? `${task.estimated_minutes} 分钟` : "未填写耗时";
+      const scheduledText = task.scheduled_start
+        ? `AI：${formatTime(task.scheduled_start)} - ${formatTime(task.scheduled_end || task.scheduled_start)}`
+        : "";
+      const description = task.description ? `<p class="task-description">${escapeHtml(task.description)}</p>` : "";
+      const depthStyle = options.depth ? `style="margin-left:${Math.min(options.depth * 14, 42)}px;"` : "";
+
+      return `
+        <article class="task-card ${task.status === "done" ? "done" : ""} ${dueClass} ${options.contextParent ? "context-parent" : ""}" data-task-id="${task.id}" ${depthStyle}>
+          <div class="task-inner">
+            <span class="priority-strip" style="background:${priorityMeta[priority].color};"></span>
+            <div class="task-content">
+              <div class="task-row">
+                <div class="task-title-wrap">
+                  <h3 class="task-title">${escapeHtml(task.title || "未命名任务")}</h3>
+                  <div class="task-meta">
+                    <span class="meta-pill"><strong>${priorityMeta[priority].label}</strong></span>
+                    <span class="status-badge ${statusClass}">${statusLabels[statusClass] || statusClass}</span>
+                    <span class="mini-chip">${escapeHtml(minutesText)}</span>
+                  </div>
+                </div>
+                <div class="task-actions">
+                  ${childrenCount ? `<button class="icon-button" data-toggle-children="${task.id}" aria-label="展开子任务"><span class="expand-icon ${expanded ? "is-open" : ""}">›</span></button>` : ""}
+                  <button class="icon-button" data-open-menu="${task.id}" aria-label="任务操作">⋯</button>
+                </div>
+              </div>
+              ${description}
+              <div class="task-row">
+                <div class="task-meta">
+                  <span class="due-text ${dueClass === "overdue" ? "overdue" : dueClass === "due-today" ? "today" : ""}">${escapeHtml(dueText)}</span>
+                  ${scheduledText ? `<span class="mini-chip">${escapeHtml(scheduledText)}</span>` : ""}
+                </div>
+                ${childrenCount ? `<div class="section-note">子任务 ${childrenCount}</div>` : ""}
+              </div>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderParentOptions() {
+      const topLevelTasks = getTopLevelTasks();
+      const decomposeOptions = [`<option value="new">作为新顶级任务</option>`, ...topLevelTasks.map((task) => `<option value="${task.id}">${escapeHtml(task.title)}</option>`)];
+      const currentDecomposeValue = els.decomposeParent.value || "new";
+      els.decomposeParent.innerHTML = decomposeOptions.join("");
+      els.decomposeParent.value = currentDecomposeValue;
+
+      const editingTaskId = Number(els.taskId.value || 0);
+      const taskParentOptions = [`<option value="">无母任务</option>`, ...topLevelTasks.filter((task) => task.id !== editingTaskId).map((task) => `<option value="${task.id}">${escapeHtml(task.title)}</option>`)];
+      const currentParentValue = els.taskParentId.value || "";
+      els.taskParentId.innerHTML = taskParentOptions.join("");
+      els.taskParentId.value = currentParentValue;
+    }
+
+    function updateDecomposeHint() {
+      const value = els.decomposeParent.value;
+      if (value && value !== "new") {
+        const task = state.tasks.find((item) => String(item.id) === String(value));
+        els.decomposeParentHint.textContent = task ? `当前将基于母任务“${task.title}”直接拆解并写入子任务。` : "当前将基于已选母任务拆解。";
+      } else {
+        els.decomposeParentHint.textContent = "选择“作为新顶级任务”时，会先创建母任务，再写入子任务。";
+      }
+    }
+
+    function renderScheduleTaskOptions() {
+      const undoneTasks = state.tasks.filter((task) => task.status !== "done").slice().sort(compareTasks);
+      if (!state.ai.schedule.initialized && undoneTasks.length) {
+        state.ai.schedule.selectedTaskIds = new Set(undoneTasks.map((task) => task.id));
+        state.ai.schedule.initialized = true;
+      }
+
+      els.scheduleTaskList.innerHTML = undoneTasks.length ? undoneTasks.map((task) => {
+        const checked = state.ai.schedule.selectedTaskIds.has(task.id) ? "checked" : "";
+        const dueText = task.due_date ? `截止：${formatShortDateTime(task.due_date)}` : "无截止时间";
+        return `
+          <label class="check-item">
+            <input type="checkbox" data-schedule-task-id="${task.id}" ${checked}>
+            <div class="check-meta">
+              <div class="check-title">${escapeHtml(task.title)}</div>
+              <div class="check-subtitle">${escapeHtml(dueText)} · 优先级 ${clampPriority(task.priority)} · ${task.estimated_minutes ? `${task.estimated_minutes} 分钟` : "未填写耗时"}</div>
+            </div>
+          </label>
+        `;
+      }).join("") : renderEmpty("暂无未完成任务可以参与规划。");
+    }
+
+    function renderSlotInputs() {
+      els.slotList.innerHTML = state.ai.schedule.slots.map((slot, index) => `
+        <div class="slot-row">
+          <div class="slot-row-grid">
+            <div>
+              <label class="field-label" for="slot-start-${index}">开始时间</label>
+              <input id="slot-start-${index}" type="datetime-local" data-slot-index="${index}" data-slot-key="start" value="${escapeHtml(slot.start || "")}">
+            </div>
+            <div>
+              <label class="field-label" for="slot-end-${index}">结束时间</label>
+              <input id="slot-end-${index}" type="datetime-local" data-slot-index="${index}" data-slot-key="end" value="${escapeHtml(slot.end || "")}">
+            </div>
+            <div style="display:flex;align-items:flex-end;">
+              <button class="btn btn-secondary" type="button" data-remove-slot="${index}" style="width:100%;min-height:46px;">删除</button>
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderDecomposeResult() {
+      const items = state.ai.decompose.items;
+      els.decomposeResultBox.classList.toggle("visible", items.length > 0);
+      els.decomposeResultList.innerHTML = items.map((item) => `
+        <div class="result-item">
+          <div class="result-title">${escapeHtml(item.title || "未命名子任务")} · ${item.estimated_minutes || 0} 分钟</div>
+          <div class="result-text">${escapeHtml(item.description || "无补充说明")}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderPrioritizeResult() {
+      const items = state.ai.prioritize.items;
+      els.prioritizeResultBox.classList.toggle("visible", items.length > 0);
+      els.prioritizeApplyButton.disabled = items.length === 0;
+      els.prioritizeResultList.innerHTML = items.map((item) => `
+        <div class="result-item">
+          <div class="result-title">${escapeHtml(item.title)}：当前 P${item.currentPriority} → 建议 P${item.priority}</div>
+          <div class="result-text">${escapeHtml(item.reason || "AI 未给出原因")}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderScheduleResult() {
+      const items = state.ai.schedule.items;
+      els.scheduleResultBox.classList.toggle("visible", items.length > 0);
+      els.scheduleSaveButton.disabled = items.length === 0;
+      els.scheduleResultList.innerHTML = items.map((item) => `
+        <div class="result-item">
+          <div class="result-title">${escapeHtml(item.title || `任务 ${item.task_id}`)}</div>
+          <div class="result-text">
+            ${item.status === "已安排" ? `${escapeHtml(formatShortDateTime(item.scheduled_start))} → ${escapeHtml(formatShortDateTime(item.scheduled_end))}` : `未能安排：${escapeHtml(item.reason || "可用时间不足")}`}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function handleTaskSubmit(event) {
+      event.preventDefault();
+      const taskId = els.taskId.value ? Number(els.taskId.value) : null;
+      const payload = {
+        title: els.taskTitle.value.trim(),
+        description: els.taskDescription.value.trim(),
+        priority: Number(els.taskPriorityValue.value || 3),
+        due_date: datetimeLocalToOffsetISOString(els.taskDueDate.value),
+        estimated_minutes: els.taskEstimatedMinutes.value ? Number(els.taskEstimatedMinutes.value) : null,
+        parent_id: els.taskParentId.value ? Number(els.taskParentId.value) : null
+      };
+
+      if (!payload.title) {
+        showToast("标题不能为空", "error");
+        return;
+      }
+
+      if (!payload.due_date) delete payload.due_date;
+      if (!payload.estimated_minutes) delete payload.estimated_minutes;
+      if (!payload.parent_id) payload.parent_id = null;
+
+      const url = taskId ? `/api/tasks/${taskId}` : "/api/tasks";
+      const method = taskId ? "PUT" : "POST";
+      await apiFetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }, taskId ? "保存任务中..." : "创建任务中...");
+
+      closeTaskSheet();
+      showToast(taskId ? "任务已更新" : "任务已创建");
+      await refreshAll();
+    }
+
+    async function handleDecompose() {
+      const parentValue = els.decomposeParent.value;
+      const title = els.decomposeTitle.value.trim();
+      const description = els.decomposeDescription.value.trim();
+      let payload;
+
+      if (parentValue && parentValue !== "new") {
+        payload = { task_id: Number(parentValue) };
+      } else {
+        if (!title) {
+          showToast("请先填写任务标题", "error");
+          return;
+        }
+        payload = { title, description };
+      }
+
+      const response = await apiFetch("/api/ai/decompose", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }, "AI 正在拆解任务...");
+
+      const subtasks = Array.isArray(response.subtasks) ? response.subtasks : [];
+      state.ai.decompose.items = [];
+      renderDecomposeResult();
+      await streamReveal(subtasks, (items) => {
+        state.ai.decompose.items = items;
+        renderDecomposeResult();
+      });
+
+      await refreshAll();
+      showToast("AI 拆解完成，结果已写入数据库");
+    }
+
+    async function handlePrioritize() {
+      const beforeMap = new Map(state.tasks.map((task) => [task.id, clampPriority(task.priority)]));
+      const response = await apiFetch("/api/ai/prioritize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      }, "AI 正在分析优先级...");
+
+      const priorities = Array.isArray(response.priorities) ? response.priorities : [];
+      state.ai.prioritize.items = priorities.map((item) => {
+        const task = state.tasks.find((row) => String(row.id) === String(item.id));
+        return {
+          id: item.id,
+          title: task ? task.title : `任务 ${item.id}`,
+          currentPriority: beforeMap.get(item.id) ?? "-",
+          priority: clampPriority(item.priority),
+          reason: item.reason || ""
+        };
+      });
+
+      renderPrioritizeResult();
+      await refreshAll();
+      showToast("优先级分析完成");
+    }
+
+    async function handleSchedule() {
+      const slots = state.ai.schedule.slots
+        .map((slot) => ({
+          start: datetimeLocalToOffsetISOString(slot.start),
+          end: datetimeLocalToOffsetISOString(slot.end)
+        }))
+        .filter((slot) => slot.start && slot.end);
+
+      const taskIds = Array.from(state.ai.schedule.selectedTaskIds);
+      if (!slots.length) {
+        showToast("请至少添加一个有效时间段", "error");
+        return;
+      }
+      if (!taskIds.length) {
+        showToast("请至少选择一个任务", "error");
+        return;
+      }
+
+      const response = await apiFetch("/api/ai/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task_ids: taskIds, available_slots: slots })
+      }, "AI 正在规划日程...");
+
+      const schedule = Array.isArray(response.schedule) ? response.schedule : [];
+      state.ai.schedule.items = schedule.map((item) => {
+        const task = state.tasks.find((row) => String(row.id) === String(item.task_id));
+        return { ...item, title: task ? task.title : `任务 ${item.task_id}` };
+      });
+
+      renderScheduleResult();
+      await refreshAll();
+      showToast("日程规划完成");
+    }
+
+    function handlePriorityPickerClick(event) {
+      const target = event.target.closest("[data-priority-value]");
+      if (!target) return;
+      renderPriorityPicker(Number(target.dataset.priorityValue));
+    }
+
+    function renderPriorityPicker(value) {
+      els.taskPriorityValue.value = String(value);
+      els.priorityPicker.innerHTML = [5, 4, 3, 2, 1].map((priority) => `
+        <button type="button" class="priority-pill ${priority === value ? "active" : ""}" data-priority-value="${priority}" style="background:${priorityMeta[priority].color};">
+          ${priority}
+        </button>
+      `).join("");
+    }
+
+    function handleSlotInput(event) {
+      const input = event.target.closest("[data-slot-index]");
+      if (!input) return;
+      const index = Number(input.dataset.slotIndex);
+      const key = input.dataset.slotKey;
+      state.ai.schedule.slots[index][key] = input.value;
+    }
+
+    function handleSlotRemove(event) {
+      const button = event.target.closest("[data-remove-slot]");
+      if (!button) return;
+      const index = Number(button.dataset.removeSlot);
+      state.ai.schedule.slots.splice(index, 1);
+      if (!state.ai.schedule.slots.length) state.ai.schedule.slots.push({ start: "", end: "" });
+      renderSlotInputs();
+    }
+
+    function handleScheduleTaskSelection(event) {
+      const checkbox = event.target.closest("[data-schedule-task-id]");
+      if (!checkbox) return;
+      const taskId = Number(checkbox.dataset.scheduleTaskId);
+      if (checkbox.checked) state.ai.schedule.selectedTaskIds.add(taskId);
+      else state.ai.schedule.selectedTaskIds.delete(taskId);
+    }
+
+    function toggleSelectAllTasks() {
+      const undoneIds = state.tasks.filter((task) => task.status !== "done").map((task) => task.id);
+      const allSelected = undoneIds.length && undoneIds.every((id) => state.ai.schedule.selectedTaskIds.has(id));
+      state.ai.schedule.selectedTaskIds = allSelected ? new Set() : new Set(undoneIds);
+      renderScheduleTaskOptions();
+    }
+
+    function syncScheduleSelection(previousSelection) {
+      const undoneIds = state.tasks.filter((task) => task.status !== "done").map((task) => task.id);
+      if (!state.ai.schedule.initialized) {
+        state.ai.schedule.selectedTaskIds = new Set(undoneIds);
+        state.ai.schedule.initialized = true;
+        return;
+      }
+
+      const next = new Set();
+      undoneIds.forEach((id) => {
+        if (previousSelection.has(id)) next.add(id);
+      });
+      if (!next.size && undoneIds.length) undoneIds.forEach((id) => next.add(id));
+      state.ai.schedule.selectedTaskIds = next;
+    }
+
+    function handleTaskListClick(event) {
+      const toggleButton = event.target.closest("[data-toggle-children]");
+      if (toggleButton) {
+        const taskId = Number(toggleButton.dataset.toggleChildren);
+        if (state.expandedParents.has(taskId)) state.expandedParents.delete(taskId);
+        else state.expandedParents.add(taskId);
+        if (toggleButton.closest("#todayTaskList")) {
+          setActiveTab("all");
+        }
+        renderAllTab();
+        return;
+      }
+
+      const menuButton = event.target.closest("[data-open-menu]");
+      if (menuButton) openActionSheet(Number(menuButton.dataset.openMenu));
+    }
+
+    function openTaskSheet(task = null) {
+      els.taskId.value = task ? String(task.id) : "";
+      els.taskTitle.value = task ? task.title || "" : "";
+      els.taskDescription.value = task ? task.description || "" : "";
+      els.taskDueDate.value = task && task.due_date ? isoToDatetimeLocal(task.due_date) : "";
+      els.taskEstimatedMinutes.value = task && task.estimated_minutes ? String(task.estimated_minutes) : "";
+      els.taskSheetTitle.textContent = task ? "编辑任务" : "新建任务";
+      els.taskSheetSubtitle.textContent = task ? "修改后会立即保存到数据库" : "创建一个新的任务或子任务";
+      renderPriorityPicker(clampPriority(task ? task.priority : 3));
+      renderParentOptions();
+      els.taskParentId.value = task && task.parent_id != null ? String(task.parent_id) : "";
+      els.taskSheetBackdrop.classList.add("open");
+    }
+
+    function closeTaskSheet() {
+      els.taskSheetBackdrop.classList.remove("open");
+    }
+
+    function openActionSheet(taskId) {
+      const task = state.tasks.find((item) => item.id === taskId);
+      if (!task) return;
+      state.currentActionTaskId = taskId;
+      els.actionSheetTitle.textContent = task.title;
+      els.actionSheetSubtitle.textContent = `${statusLabels[task.status] || task.status} · 优先级 ${clampPriority(task.priority)}`;
+      els.actionToggleDoneButton.textContent = task.status === "done" ? "标记为未完成" : "标记完成";
+      els.actionSheetBackdrop.classList.add("open");
+    }
+
+    function closeActionSheet() {
+      state.currentActionTaskId = null;
+      els.actionSheetBackdrop.classList.remove("open");
+    }
+
+    function handleEditFromActionSheet() {
+      const task = state.tasks.find((item) => item.id === state.currentActionTaskId);
+      closeActionSheet();
+      if (task) openTaskSheet(task);
+    }
+
+    async function handleToggleDoneFromActionSheet() {
+      const task = state.tasks.find((item) => item.id === state.currentActionTaskId);
+      if (!task) return;
+      await apiFetch(`/api/tasks/${task.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: task.status === "done" ? "todo" : "done" })
+      }, "更新任务状态中...");
+      closeActionSheet();
+      showToast(task.status === "done" ? "任务已恢复为未完成" : "任务已标记完成");
+      await refreshAll();
+    }
+
+    async function handleDeleteFromActionSheet() {
+      const task = state.tasks.find((item) => item.id === state.currentActionTaskId);
+      if (!task) return;
+      if (!window.confirm(`确定删除“${task.title}”吗？`)) return;
+
+      await apiFetch(`/api/tasks/${task.id}`, { method: "DELETE" }, "删除任务中...");
+      closeActionSheet();
+      showToast("任务已删除");
+      await refreshAll();
+    }
+
+    async function apiFetch(url, options = {}, loadingText = "处理中...") {
+      startLoading(loadingText);
+      try {
+        const response = await fetch(url, options);
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (_error) {
+          data = null;
+        }
+        if (!response.ok) {
+          throw new Error(data && data.error ? data.error : "请求失败");
+        }
+        return data || {};
+      } catch (error) {
+        showToast(error.message || "请求失败", "error");
+        throw error;
+      } finally {
+        stopLoading();
+      }
+    }
+
+    function startLoading(text) {
+      state.loadingCount += 1;
+      els.loadingText.textContent = text || "处理中...";
+      els.loadingWrap.classList.add("show");
+    }
+
+    function stopLoading() {
+      state.loadingCount = Math.max(0, state.loadingCount - 1);
+      if (state.loadingCount === 0) els.loadingWrap.classList.remove("show");
+    }
+
+    let toastTimer = null;
+    function showToast(message, type = "default") {
+      els.toast.textContent = message;
+      els.toast.className = `toast show ${type === "error" ? "error" : ""}`.trim();
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        els.toast.className = "toast";
+      }, 2800);
+    }
+
+    async function streamReveal(items, onStep) {
+      const visible = [];
+      for (const item of items) {
+        visible.push(item);
+        onStep([...visible]);
+        await sleep(180);
+      }
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    function renderEmpty(text) {
+      return `<div class="empty-card">${escapeHtml(text)}</div>`;
+    }
+
+    function clampPriority(value) {
+      const priority = Number(value);
+      if (Number.isNaN(priority)) return 3;
+      return Math.max(1, Math.min(5, priority));
+    }
+
+    function getDueClass(task) {
+      if (!task.due_date || task.status === "done") return "";
+      const dueDate = new Date(task.due_date);
+      if (Number.isNaN(dueDate.getTime())) return "";
+      const now = new Date();
+      if (dueDate.getTime() < now.getTime() && !isSameDay(dueDate, now)) return "overdue";
+      if (isSameDay(dueDate, now)) return "due-today";
+      if (dueDate.getTime() < now.getTime()) return "overdue";
+      return "";
+    }
+
+    function formatDueText(task) {
+      if (!task.due_date) return "无截止日期";
+      const dueDate = new Date(task.due_date);
+      if (Number.isNaN(dueDate.getTime())) return "截止日期无效";
+      const now = new Date();
+      const full = formatShortDateTime(task.due_date);
+      if (dueDate.getTime() < now.getTime()) return `已过期 · ${full}`;
+      if (isSameDay(dueDate, now)) return `今日截止 · ${full}`;
+      return `截止：${full}`;
+    }
+
+    function formatDateLabel(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "short" }).format(date);
+    }
+
+    function formatShortDateTime(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      return new Intl.DateTimeFormat("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date);
+    }
+
+    function formatTime(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      return new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit" }).format(date);
+    }
+
+    function getRelativeDayText(value) {
+      const target = new Date(value);
+      if (Number.isNaN(target.getTime())) return "时间未知";
+      const today = startOfDay(new Date());
+      const day = startOfDay(target);
+      const diff = Math.round((day.getTime() - today.getTime()) / 86400000);
+      if (diff === 0) return "距今天 0 天";
+      if (diff > 0) return `${diff} 天后`;
+      return `${Math.abs(diff)} 天前`;
+    }
+
+    function getTimelinePeriod(dateValue) {
+      const target = startOfDay(dateValue);
+      const today = startOfDay(new Date());
+      if (target.getTime() < today.getTime()) return "overdue";
+      if (target.getTime() === today.getTime()) return "today";
+      return "future";
+    }
+
+    function startOfDay(date) {
+      const clone = new Date(date);
+      clone.setHours(0, 0, 0, 0);
+      return clone;
+    }
+
+    function isSameDay(a, b) {
+      return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    }
+
+    function isoToDatetimeLocal(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const hours = String(date.getHours()).padStart(2, "0");
+      const minutes = String(date.getMinutes()).padStart(2, "0");
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+
+    function datetimeLocalToOffsetISOString(value) {
+      if (!value) return null;
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return null;
+      const offset = -date.getTimezoneOffset();
+      const sign = offset >= 0 ? "+" : "-";
+      const abs = Math.abs(offset);
+      const hours = String(Math.floor(abs / 60)).padStart(2, "0");
+      const minutes = String(abs % 60).padStart(2, "0");
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const hour = String(date.getHours()).padStart(2, "0");
+      const minute = String(date.getMinutes()).padStart(2, "0");
+      const second = String(date.getSeconds()).padStart(2, "0");
+      return `${year}-${month}-${day}T${hour}:${minute}:${second}${sign}${hours}:${minutes}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+  </script>
+</body>
+</html>

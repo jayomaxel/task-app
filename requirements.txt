@@ -1,0 +1,11 @@
+# Step 12:
+# Added root start.bat one-click startup script for Windows.
+# Step 13:
+# Performed local browser and API smoke testing; no new Python dependencies were required.
+# Step 14:
+# Renamed user-facing "parent task" wording to "mother task"; no new Python dependencies were required.
+flask==3.1.0
+gunicorn==23.0.0
+psycopg2-binary==2.9.10
+openai==1.82.0
+python-dotenv==1.1.0

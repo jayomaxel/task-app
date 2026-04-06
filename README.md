@@ -195,6 +195,75 @@ Prompt 应要求 AI 严格输出以下链路化结构：
 4. 写入 `task_chain_logs`，其中 `action = 'create'`，`actor = 'ai'`
 5. 返回完整链路结果
 
+### 3.2 AI 链路调整 `/api/ai/chain-adjust`
+
+该接口规划用于让用户通过自然语言描述链路调整需求，由 AI 理解上下文后输出结构化调整指令。
+
+#### 3.2.1 请求格式
+
+```http
+POST /api/ai/chain-adjust
+Content-Type: application/json
+```
+
+```json
+{
+  "chain_id": "uuid-xxx",
+  "instruction": "第三步做不了了，客户说不需要手机注册，删掉它，然后把第四步提前",
+  "current_chain": [],
+  "context": "可选的额外上下文"
+}
+```
+
+说明：
+
+- `chain_id` 表示要被调整的目标链路
+- `instruction` 是用户的自然语言修改意图
+- `current_chain` 是当前完整链路快照，供 AI 基于上下文做判断
+- `context` 为可选扩展上下文，例如项目背景、业务限制或外部依赖
+
+#### 3.2.2 AI 返回格式
+
+AI 应返回结构化的调整指令，而不是直接返回自然语言描述：
+
+```json
+{
+  "adjustments": [
+    {
+      "action": "delete",
+      "task_id": 15,
+      "reason": "客户确认不需要手机注册"
+    },
+    {
+      "action": "update",
+      "task_id": 16,
+      "changes": {
+        "chain_order": 2,
+        "depends_on": [13],
+        "preconditions": "邮箱注册完成后直接做第三方登录"
+      },
+      "reason": "前置任务删除后调整依赖"
+    }
+  ],
+  "impact_summary": "删除手机注册后链路从 5 步缩减为 4 步，第三方登录提前，总预估时间减少 60 分钟",
+  "chain_status_note": "链路已优化，无阻塞节点"
+}
+```
+
+#### 3.2.3 后端处理逻辑
+
+后端的预期处理流程如下：
+
+6. 读取 `chain_id` 对应的完整链路，构建 `current_chain`
+7. 将 `current_chain` 与 `instruction` 一起发送给 AI，优先使用 smart model
+8. 解析 AI 返回的 `adjustments` 数组
+9. 按顺序逐条执行变更动作，例如 `delete` / `update` / `insert` / `reorder` / `merge` / `split`
+10. 每条变更执行前保存 `before_snapshot`，执行后保存 `after_snapshot`
+11. 写入 `task_chain_logs`，保留完整变更历史
+12. 返回调整后的完整链路以及变更摘要
+
+这一设计的关键点是：AI 负责生成“调整建议”，后端负责执行、校验、持久化和审计。
+
 ## 第四部分：运行模式与启动
 
 项目当前有两套数据工作方式：

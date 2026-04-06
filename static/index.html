@@ -1227,6 +1227,7 @@
       <div id="loadingText">处理中...</div>
     </div>
   </div>
+  <script src="/static/local-api.js"></script>
   <script>
     const state = {
       activeTab: "today",
@@ -1263,6 +1264,7 @@
     };
 
     const els = {};
+    const APP_STORAGE_MODE = "local";
 
     document.addEventListener("DOMContentLoaded", init);
 
@@ -1825,7 +1827,7 @@
       });
 
       await refreshAll();
-      showToast("AI 拆解完成，结果已写入数据库");
+      showToast("AI 拆解完成，结果已保存到本地");
     }
 
     async function handlePrioritize() {
@@ -1975,7 +1977,7 @@
       els.taskDueDate.value = task && task.due_date ? isoToDatetimeLocal(task.due_date) : "";
       els.taskEstimatedMinutes.value = task && task.estimated_minutes ? String(task.estimated_minutes) : "";
       els.taskSheetTitle.textContent = task ? "编辑任务" : "新建任务";
-      els.taskSheetSubtitle.textContent = task ? "修改后会立即保存到数据库" : "创建一个新的任务或子任务";
+      els.taskSheetSubtitle.textContent = task ? "修改后会立即保存到本地" : "创建一个新的任务或子任务";
       renderPriorityPicker(clampPriority(task ? task.priority : 3));
       renderParentOptions();
       els.taskParentId.value = task && task.parent_id != null ? String(task.parent_id) : "";
@@ -2034,6 +2036,13 @@
     async function apiFetch(url, options = {}, loadingText = "处理中...") {
       startLoading(loadingText);
       try {
+        const localApi = window.TimeManagerLocalApi;
+        const canUseLocalApi = localApi && localApi.supports(url, options);
+
+        if (APP_STORAGE_MODE === "local" && canUseLocalApi) {
+          return await localApi.handle(url, options);
+        }
+
         const response = await fetch(url, options);
         let data = null;
         try {
@@ -2041,10 +2050,15 @@
         } catch (_error) {
           data = null;
         }
-        if (!response.ok) {
-          throw new Error(data && data.error ? data.error : "请求失败");
+        if (response.ok) {
+          return data || {};
         }
-        return data || {};
+
+        if (APP_STORAGE_MODE !== "remote" && canUseLocalApi) {
+          return await localApi.handle(url, options);
+        }
+
+        throw new Error(data && data.error ? data.error : "请求失败");
       } catch (error) {
         showToast(error.message || "请求失败", "error");
         throw error;

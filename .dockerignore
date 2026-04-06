@@ -1,0 +1,14 @@
+.env
+.git
+venv/
+__pycache__/
+*.pyc
+*.log
+taskflow-ai-src/
+manual-test*.log
+local-run*.log
+app.stdout.log
+app.stderr.log
+homepage-test.png
+FIGMA_DESIGN_BRIEF.md
+FRONTEND_STRUCTURE.md

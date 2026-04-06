@@ -310,7 +310,54 @@ AI 在生成续规划结果时应遵守以下原则：
 
 这一接口的核心价值在于“延续性规划”：链路会随着真实进度自然演化，而不是每次都被整条重算。
 
-## 第四部分：运行模式与启动
+## 第四部分：用户手动编辑与 AI 协同（规划）
+
+以下内容描述的是 Task Chain 场景下用户手动编辑链路、以及与 AI 协同工作的规则。当前代码库尚未完整实现这些能力。
+
+### 4.1 用户可执行的手动操作
+
+| 操作 | API | 说明 |
+| --- | --- | --- |
+| 新增子任务 | `POST /api/chains/<chain_id>/tasks` | 支持指定插入位置和依赖 |
+| 删除子任务 | `DELETE /api/chains/<chain_id>/tasks/<task_id>` | 删除后自动重连依赖链 |
+| 修改任务内容 | `PUT /api/chains/<chain_id>/tasks/<task_id>` | 可修改标题、描述、目标等字段 |
+| 调整顺序 | `PUT /api/chains/<chain_id>/reorder` | 支持拖拽排序，传入新的顺序数组 |
+| 修改依赖 | `PUT /api/chains/<chain_id>/tasks/<task_id>` | 直接修改 `depends_on` 数组 |
+| 合并任务 | `POST /api/chains/<chain_id>/merge` | 传入需要合并的 `task_ids` |
+| 拆分任务 | `POST /api/chains/<chain_id>/split` | 传入 `task_id` 和拆分后的子任务数据 |
+| 标记状态 | `PUT /api/chains/<chain_id>/tasks/<task_id>` | 支持设置 `status = blocked / skipped / done` 等 |
+
+### 4.2 协同规则
+
+#### 4.2.1 `modified_by` 标记
+
+每次修改都应记录 `modified_by = 'user'` 或 `modified_by = 'ai'`。
+
+当 AI 在调整链路时，如果发现某个任务的 `modified_by = 'user'`，应遵守以下规则：
+
+- 优先保留用户修改过的内容
+- 如果必须变更用户修改过的字段，需要在 `modification_note` 中明确说明原因
+- 不允许静默覆盖用户手动设置的状态、描述或其他关键字段
+
+#### 4.2.2 删除任务时的依赖重连
+
+当删除链路中间的任务 B 时，如果原链路关系是 `A -> B -> C`，后端应自动将 C 的 `depends_on` 从 `[B]` 改为 `[A]`。
+
+也就是说，被删除任务的下游节点会继承它的上游依赖，从而避免链路被直接断开。
+
+#### 4.2.3 状态传播
+
+当某个任务被标记为 `blocked` 时，所有直接或间接依赖它的下游任务都应自动变为 `blocked`，前提是这些下游任务当前仍处于 `todo` 状态。
+
+当阻塞解除时，这些因为依赖阻塞而被动变更的下游任务应恢复为 `todo`。
+
+#### 4.2.4 并发安全
+
+为了防止 AI 调整和用户编辑同时操作同一条链路，后端在执行链路级数据库变更时应使用 `SELECT ... FOR UPDATE` 行级锁。
+
+前端在 AI 调整进行中时，应显示 loading 状态，并禁用链路编辑相关按钮，避免产生冲突操作。
+
+## 第五部分：运行模式与启动
 
 项目当前有两套数据工作方式：
 

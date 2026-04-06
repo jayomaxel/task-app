@@ -4,18 +4,55 @@
 
 当前仓库里的主应用是 `task-app`。页面由 Flask 提供，前端是单页应用，支持 PWA 安装；仓库中还保留了一份历史原型 `taskflow-ai-src/` 作为参考，但不是当前主界面。
 
-## 功能概览
+## 第一部分：项目现状与技术栈
 
-- 任务 CRUD：创建、编辑、删除、标记完成/未完成
-- 母任务 / 子任务结构：支持分层查看与展开收起
-- Today / All / Timeline / AI Assistant 四个主视图
-- AI 任务拆解：把大任务拆成可执行子任务
-- AI 优先级分析：批量给出任务优先级建议
-- AI 日程规划：根据空闲时间段安排任务
-- PWA 支持：可安装到桌面或移动端主屏
-- 本地优先体验：默认使用浏览器 `localStorage`
+### 1.1 当前架构概览
 
-## 当前运行模式
+项目是一个 Flask + 原生前端的时间管理应用，支持本地存储和远程数据库两种模式。
+
+| 层级 | 技术 | 说明 |
+| --- | --- | --- |
+| 后端 | Flask (Python) | `app.py` 约 600 行，包含主要 API 路由和数据库操作 |
+| AI 服务 | OpenAI SDK | `ai_service.py` 约 670 行，支持 SiliconFlow / OpenAI / Claude / GitHub Models |
+| 前端 | 原生 HTML / CSS / JS | `static/index.html` 为单文件 SPA，`static/local-api.js` 提供本地存储模拟 |
+| 数据库 | PostgreSQL | 单表 `tasks`，支持 `parent_id` 父子关系 |
+| 部署 | Docker + Gunicorn | `Dockerfile` 已就绪，可直接构建部署 |
+
+### 1.2 当前数据库 `tasks` 表结构
+
+当前只有一张 `tasks` 表，字段如下：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | `SERIAL PRIMARY KEY` | 自增主键 |
+| `title` | `TEXT NOT NULL` | 任务标题 |
+| `description` | `TEXT NOT NULL DEFAULT ''` | 任务描述 |
+| `priority` | `INTEGER` | 优先级，范围 1-5，5 最高 |
+| `status` | `TEXT` | `todo` / `doing` / `done` |
+| `parent_id` | `INTEGER` | 父任务 ID，外键关联 `tasks(id)`，级联删除 |
+| `due_date` | `TIMESTAMPTZ` | 截止时间 |
+| `estimated_minutes` | `INTEGER` | 预估耗时，单位分钟 |
+| `scheduled_start` | `TIMESTAMPTZ` | 排程开始时间 |
+| `scheduled_end` | `TIMESTAMPTZ` | 排程结束时间 |
+| `created_at` | `TIMESTAMPTZ` | 创建时间 |
+| `updated_at` | `TIMESTAMPTZ` | 更新时间 |
+
+### 1.3 当前 AI 能力
+
+- `POST /api/ai/decompose`：将大任务拆解为 3-6 个子任务
+- `POST /api/ai/prioritize`：AI 分析优先级并回写
+- `POST /api/ai/schedule`：根据空闲时段安排任务
+
+AI 调用统一封装在 `ai_service.py` 中，使用 OpenAI Python SDK 兼容接口，支持多 provider 切换。当前实现中，快速模型主要用于任务拆解，智能模型主要用于优先级分析和日程规划。
+
+### 1.4 当前前端视图
+
+- Today 视图：今日任务
+- All 视图：全部任务列表
+- Timeline 视图：时间轴
+- AI Assistant 视图：AI 交互面板
+
+## 第二部分：运行模式与启动
 
 项目当前有两套数据工作方式：
 
@@ -50,15 +87,6 @@
 1. 配置 `DATABASE_URL`
 2. 配置一个 AI Provider 的 Key
 3. 将前端中的 `APP_STORAGE_MODE` 从 `"local"` 改成 `"remote"`
-
-## 技术栈
-
-- Backend: Flask
-- Database: PostgreSQL
-- AI SDK: OpenAI Python SDK
-- Frontend: 原生 HTML / CSS / JavaScript
-- Deployment: Gunicorn + Docker
-- PWA: `manifest.json` + Service Worker
 
 ## 本地启动
 
